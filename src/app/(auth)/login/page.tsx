@@ -1,19 +1,43 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Lock, Mail, ArrowRight } from "lucide-react";
+import { Lock, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../components/ui/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
   const toast = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, authLoading, router]);
+
+  // Load saved credentials from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("school_printer_saved_login");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) setEmail(parsed.email);
+        if (parsed.password) setPassword(parsed.password);
+        setRememberMe(true);
+      }
+    } catch (e) {
+      console.warn("Could not load saved login credentials:", e);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +53,30 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
+
+      // Save or remove credentials based on Remember Me checkbox
+      try {
+        if (rememberMe) {
+          localStorage.setItem(
+            "school_printer_saved_login",
+            JSON.stringify({ email: email.trim(), password })
+          );
+        } else {
+          localStorage.removeItem("school_printer_saved_login");
+        }
+      } catch (err) {
+        console.warn("Could not save login credentials:", err);
+      }
+
       toast.success("Đăng nhập thành công!");
       router.push("/dashboard");
     } catch (err: any) {
       let msg = "Đăng nhập không thành công. Vui lòng kiểm tra lại email hoặc mật khẩu!";
-      if (err?.code === "auth/invalid-credential" || err?.code === "auth/wrong-password" || err?.code === "auth/user-not-found") {
+      if (
+        err?.code === "auth/invalid-credential" ||
+        err?.code === "auth/wrong-password" ||
+        err?.code === "auth/user-not-found"
+      ) {
         msg = "Email hoặc mật khẩu không chính xác!";
       } else if (err?.code === "auth/too-many-requests") {
         msg = "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau ít phút!";
@@ -80,6 +123,8 @@ export default function LoginPage() {
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
+                  name="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@truong.edu.vn"
@@ -96,14 +141,39 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-slate-900"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-slate-900"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+            </div>
+
+            {/* Remember Me Option */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                />
+                <span className="text-xs text-slate-600 font-medium">
+                  Lưu mật khẩu trên máy này
+                </span>
+              </label>
             </div>
 
             <button
