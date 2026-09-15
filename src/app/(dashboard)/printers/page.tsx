@@ -17,6 +17,7 @@ import {
   Wrench,
   PauseCircle,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { printerService } from "../../../services/printerService";
 import { departmentService } from "../../../services/departmentService";
@@ -248,8 +249,107 @@ export default function PrintersPage() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Mobile App Cards (Displayed on phones for 1-hand touch usage) */}
+      <div className="space-y-3 sm:hidden">
+        {filteredPrinters.map((printer) => {
+          const dept = departments.find((d) => d.id === printer.departmentId);
+          const toner = toners.find((t) => t.id === printer.tonerTypeId);
+          const st = PRINTER_STATUS_MAP[printer.status] || PRINTER_STATUS_MAP.active;
+          const lastRefill = lastRefillMap[printer.id];
+
+          return (
+            <div
+              key={printer.id}
+              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3 active:border-blue-300 transition-all"
+            >
+              {/* Header: Code & Status */}
+              <div className="flex items-center justify-between">
+                <Link
+                  href={`/printers/${printer.id}`}
+                  className="font-bold text-sm text-blue-600 hover:underline flex items-center gap-1.5"
+                >
+                  <PrinterIcon className="w-4 h-4 text-blue-600" />
+                  {printer.code}
+                </Link>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${st.color}`}
+                >
+                  {st.label}
+                </span>
+              </div>
+
+              {/* Body: Model & Dept */}
+              <div className="space-y-1 text-xs">
+                <div className="font-semibold text-slate-900 text-sm">{printer.name}</div>
+                <div className="text-slate-500 text-xs">
+                  {printer.brand} &bull; Model: <span className="font-medium text-slate-800">{printer.model}</span>
+                </div>
+                <div className="text-slate-600 flex items-center gap-1 pt-1">
+                  <span className="font-medium text-slate-700">{dept?.name || "Chưa gán"}</span>
+                  {printer.location && (
+                    <span className="text-slate-400">&bull; {printer.location}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Toner & Last refill */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-500">
+                <div className="flex items-center gap-1.5">
+                  <span>Mực:</span>
+                  {toner ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                      {toner.code}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">N/A</span>
+                  )}
+                </div>
+                <div>
+                  {lastRefill ? (
+                    <span>Nạp: {formatDate(lastRefill)}</span>
+                  ) : (
+                    <span className="text-slate-400">Chưa nạp</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile Action Buttons (Touch Friendly) */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                <Link
+                  href={`/printers/${printer.id}`}
+                  className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 active:scale-95 transition-all text-center"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Chi tiết
+                </Link>
+                <button
+                  onClick={() => setQrModalPrinter(printer)}
+                  className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 active:scale-95 transition-all text-center"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  Mã QR
+                </button>
+                <Link
+                  href={`/toner-transactions/new?printerId=${printer.id}`}
+                  className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl active:scale-95 transition-all text-center"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Nạp mực
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredPrinters.length === 0 && (
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
+            Không tìm thấy máy in nào phù hợp.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table (Hidden on small mobile) */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>

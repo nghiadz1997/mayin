@@ -50,7 +50,7 @@ export default function DashboardLayout({
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header onOpenMobileMenu={() => setMobileOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 custom-scrollbar pb-20 lg:pb-6">
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 custom-scrollbar pb-24 lg:pb-6">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
             {children}
           </div>

@@ -44,7 +44,7 @@ export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => v
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 sm:px-6 bg-white border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-20 flex items-center justify-between h-16 sm:h-16 px-3 sm:px-6 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm safe-area-top">
         {/* Left: Mobile Menu & Search trigger */}
         <div className="flex items-center gap-3 sm:gap-4 flex-1">
           <button

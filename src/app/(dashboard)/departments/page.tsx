@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Building2, Search, Plus, Eye, Edit, EyeOff, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Building2, Search, Plus, Eye, Edit, EyeOff, CheckCircle, AlertCircle, RefreshCw, Printer as PrinterIcon } from "lucide-react";
 import { departmentService } from "../../../services/departmentService";
 import { printerService } from "../../../services/printerService";
 import { transactionService } from "../../../services/transactionService";
@@ -189,8 +189,102 @@ export default function DepartmentsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Mobile App Cards (Phones) */}
+      <div className="space-y-3 sm:hidden">
+        {filteredDepartments.map((dept) => {
+          const s = deptStats[dept.id] || {
+            total: 0,
+            active: 0,
+            broken: 0,
+            repairing: 0,
+            refillThisMonth: 0,
+            lastRefillDate: null,
+          };
+
+          return (
+            <div
+              key={dept.id}
+              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3 active:border-blue-300 transition-all"
+            >
+              {/* Header: Code & Type */}
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100">
+                  {dept.code}
+                </span>
+                <span
+                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                    dept.type === "faculty"
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : "bg-purple-50 text-purple-700 border-purple-200"
+                  }`}
+                >
+                  {dept.type === "faculty" ? "Khoa đào tạo" : "Phòng chức năng"}
+                </span>
+              </div>
+
+              {/* Name */}
+              <div>
+                <Link
+                  href={`/departments/${dept.id}`}
+                  className="font-bold text-slate-900 text-sm hover:text-blue-600"
+                >
+                  {dept.name}
+                </Link>
+                {dept.note && (
+                  <p className="text-[11px] text-slate-400 mt-0.5">{dept.note}</p>
+                )}
+              </div>
+
+              {/* Stats Bar */}
+              <div className="grid grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl text-center border border-slate-100 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-500 block">Tổng máy</span>
+                  <span className="font-bold text-slate-800">{s.total}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-emerald-600 block">Hoạt động</span>
+                  <span className="font-bold text-emerald-600">{s.active}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-rose-600 block">Hỏng/Sửa</span>
+                  <span className="font-bold text-rose-600">{s.broken + s.repairing}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-blue-600 block">Nạp T{currentMonthNum}</span>
+                  <span className="font-bold text-blue-600">{s.refillThisMonth}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                <Link
+                  href={`/departments/${dept.id}`}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 active:scale-95 transition-all text-center"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Xem chi tiết
+                </Link>
+                <Link
+                  href={`/printers?dept=${dept.id}`}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 active:scale-95 transition-all text-center"
+                >
+                  <PrinterIcon className="w-3.5 h-3.5" />
+                  Máy in ({s.total})
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredDepartments.length === 0 && (
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
+            Không tìm thấy Khoa / Phòng nào phù hợp.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>

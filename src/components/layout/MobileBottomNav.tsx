@@ -49,8 +49,8 @@ export const MobileBottomNav: React.FC = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 lg:hidden shadow-lg safe-area-bottom">
-      <div className="grid grid-cols-5 h-16 items-center px-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 lg:hidden shadow-[0_-4px_25px_rgba(0,0,0,0.08)] safe-area-bottom">
+      <div className="grid grid-cols-5 h-16 items-center px-1 max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -63,12 +63,14 @@ export const MobileBottomNav: React.FC = () => {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center justify-center -mt-5 group"
+                className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-4 border-slate-50 group-active:scale-95 transition-transform">
-                  <RefreshCw className="w-5 h-5" />
+                <div className="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-[3px] border-white active:scale-90 transition-all duration-150">
+                  <RefreshCw className="w-5 h-5 group-active:rotate-180 transition-transform duration-300" />
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 mt-1">{item.label}</span>
+                <span className="text-[10px] font-bold text-blue-600 mt-0.5 tracking-tight">
+                  {item.label}
+                </span>
               </Link>
             );
           }
@@ -77,21 +79,28 @@ export const MobileBottomNav: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center h-full transition-colors ${
-                isActive ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              className={`flex flex-col items-center justify-center h-full py-1.5 transition-all duration-150 active:scale-95 focus:outline-none ${
+                isActive ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <div className="relative">
+              <div
+                className={`flex items-center justify-center w-10 h-7 rounded-full transition-colors ${
+                  isActive ? "bg-blue-100/70 text-blue-600" : "bg-transparent"
+                }`}
+              >
                 {item.icon}
-                {isActive && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full" />
-                )}
               </div>
-              <span className="text-[10px] mt-1 tracking-tight">{item.label}</span>
+              <span
+                className={`text-[10px] tracking-tight mt-0.5 ${
+                  isActive ? "font-bold text-blue-600" : "font-medium text-slate-500"
+                }`}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 };

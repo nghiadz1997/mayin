@@ -408,6 +408,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Mobile App Quick Action Dock (4 1-touch buttons for smartphone technicians) */}
+      <div className="grid grid-cols-4 gap-2.5 sm:hidden">
+        <Link
+          href="/toner-transactions/new"
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 active:scale-90 transition-all text-center"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
+            <RefreshCw className="w-4 h-4" />
+          </div>
+          <span className="text-[11px] font-bold leading-tight">Nạp mực</span>
+        </Link>
+        <Link
+          href="/repairs/new"
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/20 active:scale-90 transition-all text-center"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
+            <Wrench className="w-4 h-4" />
+          </div>
+          <span className="text-[11px] font-bold leading-tight">Báo hỏng</span>
+        </Link>
+        <Link
+          href="/printers/new"
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-md shadow-purple-500/20 active:scale-90 transition-all text-center"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
+            <Printer className="w-4 h-4" />
+          </div>
+          <span className="text-[11px] font-bold leading-tight">Thêm máy</span>
+        </Link>
+        <Link
+          href="/departments"
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 active:scale-90 transition-all text-center"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
+            <Building2 className="w-4 h-4" />
+          </div>
+          <span className="text-[11px] font-bold leading-tight">Khoa/Phòng</span>
+        </Link>
+      </div>
+
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
