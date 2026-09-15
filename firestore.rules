@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (getUserRole() == 'super_admin' || getUserRole() == 'admin');
+    }
+
+    function isStaff() {
+      return isAuthenticated() && (getUserRole() == 'super_admin' || getUserRole() == 'admin' || getUserRole() == 'staff');
+    }
+
+    // PRINTERS:
+    // - Công chúng có thể đọc thông tin cơ bản qua mã QR
+    // - Chỉ Admin/SuperAdmin được phép tạo, sửa, xóa
+    match /printers/{printerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // DEPARTMENTS:
+    // - Công chúng có thể đọc tên đơn vị để hiển thị trên QR
+    // - Chỉ Admin/SuperAdmin được phép chỉnh sửa
+    match /departments/{deptId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // TONER TYPES:
+    match /tonerTypes/{tonerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // TONER TRANSACTIONS:
+    // - Nhân viên, Admin, Super Admin được ghi nhận nạp/thay mực
+    match /tonerTransactions/{txId} {
+      allow read: if isAuthenticated();
+      allow create: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+
+    // REPAIRS:
+    match /repairs/{repairId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // PRINTER TRANSFERS:
+    match /printerTransfers/{transferId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // FAULT REPORTS:
+    // - Công chúng KHÔNG CẦN ĐĂNG NHẬP được phép gửi báo lỗi qua quét QR
+    // - Chỉ nhân viên/admin được xem và cập nhật trạng thái
+    match /faultReports/{reportId} {
+      allow create: if request.resource.data.problem is string &&
+                       request.resource.data.problem.size() > 0 &&
+                       request.resource.data.printerCodeSnapshot is string;
+      allow read, update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // AUDIT LOGS:
+    // - Tuyệt đối không cho công chúng xem
+    // - Hệ thống ghi nhật ký
+    match /auditLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Không ai được sửa/xóa audit log
+    }
+
+    // USERS:
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    // SETTINGS:
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+  }
+}
