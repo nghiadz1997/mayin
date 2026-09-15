@@ -197,9 +197,9 @@ export const Sidebar: React.FC<{ mobileOpen: boolean; setMobileOpen: (open: bool
 
       {/* Footer Info */}
       {!collapsed && (
-        <div className="p-3.5 bg-slate-950/80 border-t border-slate-800 text-xs text-slate-400 text-center">
-          <p className="font-semibold text-slate-300">Quản trị viên</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Firebase Database Connected</p>
+        <div className="p-3 bg-slate-950/80 border-t border-slate-800 text-xs text-slate-400 text-center">
+          <p className="text-[10px] text-slate-400">Phát triển bởi</p>
+          <p className="font-semibold text-slate-200 text-xs mt-0.5">Thầy Nguyễn Trọng Nghĩa</p>
         </div>
       )}
     </div>

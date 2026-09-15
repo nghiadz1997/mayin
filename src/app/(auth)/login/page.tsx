@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Lock, Mail, ArrowRight, Info } from "lucide-react";
+import { Printer, Lock, Mail, ArrowRight } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../components/ui/Toast";
 
@@ -121,20 +121,10 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-2 text-xs text-blue-800">
-            <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Tài khoản quản trị:</p>
-              <p className="text-[11px] text-blue-700 mt-0.5">
-                Được tạo trực tiếp trong Firebase Authentication (Dự án: <code className="font-mono bg-white px-1 py-0.5 rounded border border-blue-200">lspd-9df02</code>)
-              </p>
-            </div>
-          </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-slate-500">
-          Kết nối trực tiếp Cloud Firestore &bull; Firebase Auth
+        <p className="mt-6 text-center text-xs font-medium text-slate-400">
+          Phát Triển Bởi: <span className="text-slate-200 font-semibold">Thầy Nguyễn Trọng Nghĩa</span>
         </p>
       </div>
     </div>
