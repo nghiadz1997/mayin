@@ -341,6 +341,77 @@ export default function DashboardPage() {
       .slice(0, 6);
   }, [filteredTransactions]);
 
+  // Thống kê các loại mực gắn vào từng máy theo số lượng tổng máy in
+  const tonerPrinterDistribution = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        toner: TonerType;
+        printers: IPrinter[];
+        count: number;
+        percentage: number;
+      }
+    > = {};
+
+    toners.forEach((t) => {
+      map[t.id] = {
+        toner: t,
+        printers: [],
+        count: 0,
+        percentage: 0,
+      };
+    });
+
+    const unassignedPrinters: IPrinter[] = [];
+
+    filteredPrinters.forEach((p) => {
+      if (p.tonerTypeId && map[p.tonerTypeId]) {
+        map[p.tonerTypeId].printers.push(p);
+        map[p.tonerTypeId].count += 1;
+      } else {
+        unassignedPrinters.push(p);
+      }
+    });
+
+    const total = filteredPrinters.length;
+
+    const list = Object.values(map)
+      .map((item) => ({
+        ...item,
+        percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    if (unassignedPrinters.length > 0) {
+      list.push({
+        toner: {
+          id: "unassigned",
+          code: "Chưa gán mực",
+          name: "Chưa cấu hình loại hộp mực",
+          color: "black",
+          compatibleModels: [],
+        } as unknown as TonerType,
+        printers: unassignedPrinters,
+        count: unassignedPrinters.length,
+        percentage: total > 0 ? Math.round((unassignedPrinters.length / total) * 100) : 0,
+      });
+    }
+
+    return list;
+  }, [toners, filteredPrinters]);
+
+  // Dữ liệu biểu đồ phân bổ máy in theo loại mực
+  const chartTonerPrinters = useMemo(() => {
+    return tonerPrinterDistribution
+      .filter((item) => item.count > 0)
+      .map((item) => ({
+        code: item.toner.code,
+        name: item.toner.name,
+        count: item.count,
+        percentage: item.percentage,
+      }));
+  }, [tonerPrinterDistribution]);
+
   // Hoạt động gần đây (Recent 10 activities)
   const recentActivities = useMemo(() => {
     const items: Array<{
@@ -890,6 +961,164 @@ export default function DashboardPage() {
               Xem danh mục loại mực &rarr;
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* PHÂN BỔ CÁC LOẠI MỰC GẮN VÀO TỪNG MÁY THEO SỐ LƯỢNG TỔNG MÁY IN */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                <Droplet className="w-4 h-4" />
+              </div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                CÁC LOẠI MỰC GẮN VÀO TỪNG MÁY THEO SỐ LƯỢNG MÁY IN
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Thống kê chi tiết từng loại hộp mực / cartridge đang được sử dụng bởi bao nhiêu máy in trong trường
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg">
+              {tonerPrinterDistribution.filter((t) => t.count > 0).length} loại mực đang dùng
+            </span>
+            <Link
+              href="/toners"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+            >
+              Xem danh mục <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Biểu đồ thanh ngang so sánh số máy in theo từng loại mực */}
+        {chartTonerPrinters.length > 0 && (
+          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Biểu đồ phân bố số máy in theo từng mã mực
+              </h3>
+              <span className="text-[11px] text-slate-400">
+                Tổng cộng {filteredPrinters.length} máy in
+              </span>
+            </div>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartTonerPrinters} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="code" tick={{ fontSize: 11, fill: "#475569" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#475569" }} />
+                  <Tooltip
+                    formatter={(val: any, _name: any, item: any) => [
+                      `${val} máy in (${item.payload.percentage}%)`,
+                      item.payload.name || item.payload.code,
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      border: "none",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Bar dataKey="count" name="Số máy in" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Lưới các thẻ chi tiết từng loại mực */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {tonerPrinterDistribution.map((item) => (
+            <div
+              key={item.toner.id}
+              className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                item.count > 0
+                  ? "bg-white border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md"
+                  : "bg-slate-50/60 border-slate-200/60 opacity-60"
+              }`}
+            >
+              <div>
+                {/* Header: Mã mực & Số máy */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      {item.toner.code}
+                    </span>
+                    <h3 className="font-bold text-slate-900 text-sm mt-1.5 line-clamp-1">
+                      {item.toner.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">{item.toner.brand}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-xl font-black text-blue-600 block leading-tight">
+                      {item.count} <span className="text-xs font-semibold text-slate-500">máy</span>
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {item.percentage}% tổng máy
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar tỉ lệ */}
+                <div className="mt-3">
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Dòng máy tương thích */}
+                {item.toner.compatibleModels && item.toner.compatibleModels.length > 0 && (
+                  <div className="mt-2 text-[11px] text-slate-500">
+                    <span className="font-medium text-slate-600">Dòng máy: </span>
+                    <span className="line-clamp-1">{item.toner.compatibleModels.join(", ")}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Danh sách máy in gắn loại mực này */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between text-[11px] mb-2">
+                  <span className="font-bold text-slate-700">
+                    Máy in đang gắn ({item.printers.length}):
+                  </span>
+                  {item.count > 0 && (
+                    <Link
+                      href={`/printers?toner=${item.toner.id}`}
+                      className="text-blue-600 hover:text-blue-700 hover:underline font-semibold"
+                    >
+                      Xem tất cả &rarr;
+                    </Link>
+                  )}
+                </div>
+
+                {item.printers.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                    {item.printers.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/printers/${p.id}`}
+                        title={`${p.name} (${p.brand} ${p.model} - ${p.location})`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-700 transition-colors"
+                      >
+                        <Printer className="w-3 h-3 text-slate-500" />
+                        {p.code}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">Chưa có máy in nào gắn loại mực này</p>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

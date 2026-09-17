@@ -55,6 +55,15 @@ export default function PrintersPage() {
 
   useEffect(() => {
     loadData();
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get("toner");
+      if (t) setTonerFilter(t);
+      const d = params.get("dept");
+      if (d) setDeptFilter(d);
+      const s = params.get("status");
+      if (s) setStatusFilter(s);
+    }
   }, []);
 
   async function loadData() {
