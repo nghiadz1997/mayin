@@ -43,8 +43,13 @@ export default function TonerInventoryPage() {
   // Modals
   const [deleteTarget, setDeleteTarget] = useState<TonerInventoryItem | null>(null);
   const [editItem, setEditItem] = useState<TonerInventoryItem | null>(null);
+  const [editCode, setEditCode] = useState<string>("");
+  const [editName, setEditName] = useState<string>("");
+  const [editBrand, setEditBrand] = useState<string>("");
   const [editQuantity, setEditQuantity] = useState<number>(0);
   const [editLocation, setEditLocation] = useState<string>("");
+  const [editSupplier, setEditSupplier] = useState<string>("");
+  const [editModelsInput, setEditModelsInput] = useState<string>("");
   const [editNote, setEditNote] = useState<string>("");
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -101,8 +106,13 @@ export default function TonerInventoryPage() {
   // Open edit modal
   const openEditModal = (item: TonerInventoryItem) => {
     setEditItem(item);
+    setEditCode(item.code);
+    setEditName(item.name);
+    setEditBrand(item.brand || "");
     setEditQuantity(item.quantity);
     setEditLocation(item.storageLocation);
+    setEditSupplier(item.supplier || "");
+    setEditModelsInput(item.compatibleModels ? item.compatibleModels.join(", ") : "");
     setEditNote(item.note || "");
   };
 
@@ -110,22 +120,41 @@ export default function TonerInventoryPage() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editItem) return;
+    if (!editCode.trim()) {
+      toast.error("Vui lòng nhập mã hộp mực");
+      return;
+    }
+    if (!editName.trim()) {
+      toast.error("Vui lòng nhập tên loại mực");
+      return;
+    }
+
     setSavingEdit(true);
     try {
       const q = Math.max(0, editQuantity);
       const st = q === 0 ? "out_of_stock" : q <= 3 ? "low_stock" : "in_stock";
+      const compatibleModels = editModelsInput
+        .split(/[,;\n]+/)
+        .map((m) => m.trim())
+        .filter(Boolean);
+
       await tonerInventoryService.update(
         editItem.id,
         {
+          code: editCode.trim().toUpperCase(),
+          name: editName.trim(),
+          brand: editBrand.trim(),
           quantity: q,
           storageLocation: editLocation.trim(),
+          supplier: editSupplier.trim(),
+          compatibleModels,
           note: editNote.trim(),
           status: st,
           updatedAt: new Date().toISOString(),
         },
         user?.email
       );
-      toast.success("Đã cập nhật kho mực " + editItem.code);
+      toast.success("Đã cập nhật kho mực " + editCode.trim().toUpperCase());
       setEditItem(null);
       loadData();
     } catch {
@@ -562,48 +591,121 @@ export default function TonerInventoryPage() {
         </div>
       </div>
 
-      {/* Modal Chỉnh Sửa Tồn Kho & Vị Trí Lưu Kho */}
+      {/* Modal Chỉnh Sửa Tồn Kho & Thông Tin Mực */}
       {editItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Cập Nhật Kho Mực: {editItem.code}
+                  Chỉnh Sửa Kho Mực / Sửa Mã Mực
                 </h3>
-                <p className="text-xs text-slate-500">{editItem.name}</p>
+                <p className="text-xs text-slate-500">Sửa mã mực, số lượng hoặc thông tin khi nhập sai</p>
               </div>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                {editItem.brand}
+              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                {editCode || editItem.code}
               </span>
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Mã hộp mực *
+                  </label>
+                  <input
+                    type="text"
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    placeholder="VD: 12A, TN-2385..."
+                    required
+                    className="w-full text-xs font-bold uppercase bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Sửa trực tiếp nếu nhập sai mã mực</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Hãng sản xuất *
+                  </label>
+                  <input
+                    type="text"
+                    value={editBrand}
+                    onChange={(e) => setEditBrand(e.target.value)}
+                    placeholder="VD: HP, Canon, Brother..."
+                    required
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Số lượng tồn kho (Hộp) *
+                  Tên loại mực *
                 </label>
                 <input
-                  type="number"
-                  min={0}
-                  max={9999}
-                  value={editQuantity}
-                  onChange={(e) => setEditQuantity(parseInt(e.target.value) || 0)}
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="VD: Hộp mực HP 12A Laser Cartridge..."
                   required
-                  className="w-full text-base font-bold bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Số lượng tồn kho (Hộp) *
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={9999}
+                    value={editQuantity}
+                    onChange={(e) => setEditQuantity(parseInt(e.target.value) || 0)}
+                    required
+                    className="w-full text-sm font-bold bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Vị trí lưu kho *
+                  </label>
+                  <input
+                    type="text"
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    placeholder="VD: Kho Hành chính - Tủ 01 Kệ A"
+                    required
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Đơn vị cung cấp / Nguồn nhập
+                </label>
+                <input
+                  type="text"
+                  value={editSupplier}
+                  onChange={(e) => setEditSupplier(e.target.value)}
+                  placeholder="VD: Công ty TNHH Thiết bị Văn phòng..."
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Vị trí lưu kho *
+                  Dòng máy in tương thích
                 </label>
                 <input
                   type="text"
-                  value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
-                  placeholder="VD: Kho Hành chính - Tủ 01 Kệ A"
-                  required
+                  value={editModelsInput}
+                  onChange={(e) => setEditModelsInput(e.target.value)}
+                  placeholder="VD: Canon 2900, HP 1020 (ngăn cách bằng dấu phẩy)"
                   className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -616,7 +718,7 @@ export default function TonerInventoryPage() {
                   type="text"
                   value={editNote}
                   onChange={(e) => setEditNote(e.target.value)}
-                  placeholder="Ghi chú về lô mực, hạn sử dụng..."
+                  placeholder="Ghi chú về lô mực, xuất xứ..."
                   className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

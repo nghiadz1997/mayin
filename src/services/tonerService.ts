@@ -5,6 +5,7 @@ import {
   getDocumentById,
   createDocument,
   updateDocument,
+  deleteDocument,
 } from "./dataStore";
 import { auditService } from "./auditService";
 
@@ -36,6 +37,17 @@ export const tonerService = {
       resource: "TONER_TYPE",
       resourceId: id,
       details: `Cập nhật loại mực ID: ${id}`,
+      userEmail,
+    });
+  },
+
+  async delete(id: string, userEmail?: string): Promise<void> {
+    await deleteDocument(COLLECTIONS.TONER_TYPES, id);
+    await auditService.log({
+      action: "DELETE_TONER",
+      resource: "TONER_TYPE",
+      resourceId: id,
+      details: `Xóa loại mực ID: ${id}`,
       userEmail,
     });
   },

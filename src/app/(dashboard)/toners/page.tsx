@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Droplet, Search, Plus, Printer, CheckCircle2, X, Edit, EyeOff, Package } from "lucide-react";
+import { Droplet, Search, Plus, Printer, CheckCircle2, X, Edit, Trash2, EyeOff, Eye, Package } from "lucide-react";
 import { tonerService } from "../../../services/tonerService";
 import { printerService } from "../../../services/printerService";
 import { transactionService } from "../../../services/transactionService";
@@ -12,7 +12,7 @@ import { useToast } from "../../../components/ui/Toast";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 
 export default function TonersPage() {
-  const { canManagePrinters } = useAuth();
+  const { user, canManagePrinters } = useAuth();
   const toast = useToast();
 
   const [toners, setToners] = useState<TonerType[]>([]);
@@ -23,6 +23,20 @@ export default function TonersPage() {
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("all");
   const [toggleTarget, setToggleTarget] = useState<TonerType | null>(null);
+
+  // Edit modal
+  const [editTarget, setEditTarget] = useState<TonerType | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editColor, setEditColor] = useState("Black");
+  const [editTonerType, setEditTonerType] = useState("Hộp mực Laser đen trắng");
+  const [editModelsInput, setEditModelsInput] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Delete modal
+  const [deleteTarget, setDeleteTarget] = useState<TonerType | null>(null);
 
   useEffect(() => {
     loadData();
@@ -44,10 +58,76 @@ export default function TonersPage() {
     }
   }
 
+  const openEditModal = (t: TonerType) => {
+    setEditTarget(t);
+    setEditCode(t.code);
+    setEditName(t.name);
+    setEditBrand(t.brand);
+    setEditColor(t.color || "Black");
+    setEditTonerType(t.tonerType || "Hộp mực Laser đen trắng");
+    setEditModelsInput(t.compatibleModels ? t.compatibleModels.join(", ") : "");
+    setEditNote(t.note || "");
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    if (!editCode.trim()) {
+      toast.error("Vui lòng nhập mã loại mực");
+      return;
+    }
+    if (!editName.trim()) {
+      toast.error("Vui lòng nhập tên loại mực");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const compatibleModels = editModelsInput
+        .split(/[,;\n]+/)
+        .map((m) => m.trim())
+        .filter(Boolean);
+
+      await tonerService.update(
+        editTarget.id,
+        {
+          code: editCode.trim().toUpperCase(),
+          name: editName.trim(),
+          brand: editBrand.trim(),
+          color: editColor.trim(),
+          tonerType: editTonerType.trim(),
+          compatibleModels,
+          note: editNote.trim(),
+        },
+        user?.email
+      );
+
+      toast.success("Đã cập nhật mã mực " + editCode.trim().toUpperCase() + " thành công!");
+      setEditTarget(null);
+      loadData();
+    } catch {
+      toast.error("Không thể cập nhật thông tin loại mực");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await tonerService.delete(deleteTarget.id, user?.email);
+      toast.success("Đã xóa loại mực " + deleteTarget.code + " thành công!");
+      setDeleteTarget(null);
+      loadData();
+    } catch {
+      toast.error("Không thể xóa loại mực này");
+    }
+  };
+
   const handleToggleStatus = async () => {
     if (!toggleTarget) return;
     try {
-      await tonerService.toggleStatus(toggleTarget.id, toggleTarget.status);
+      await tonerService.toggleStatus(toggleTarget.id, toggleTarget.status, user?.email);
       toast.success(
         `Đã đổi trạng thái loại mực ${toggleTarget.code} sang ${
           toggleTarget.status === "active" ? "ngưng dùng" : "hoạt động"
@@ -217,13 +297,29 @@ export default function TonersPage() {
                 </div>
 
                 {canManagePrinters && (
-                  <button
-                    onClick={() => setToggleTarget(t)}
-                    className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100"
-                    title={t.status === "active" ? "Đánh dấu ngưng dùng" : "Kích hoạt lại"}
-                  >
-                    <EyeOff className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEditModal(t)}
+                      className="text-slate-500 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                      title="Chỉnh sửa mã mực & thông tin"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setToggleTarget(t)}
+                      className="text-slate-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 transition-colors"
+                      title={t.status === "active" ? "Đánh dấu ngưng dùng" : "Kích hoạt lại"}
+                    >
+                      {t.status === "active" ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-emerald-600" />}
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(t)}
+                      className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                      title="Xóa loại mực khi nhập sai"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -236,6 +332,152 @@ export default function TonersPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Chỉnh Sửa Loại Mực & Mã Mực */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Chỉnh Sửa Loại Mực / Mã Mực
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Sửa mã mực, tên hoặc thông số khi nhập sai
+                </p>
+              </div>
+              <button
+                onClick={() => setEditTarget(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Mã hộp mực *
+                  </label>
+                  <input
+                    type="text"
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    placeholder="VD: 12A, TN-2385..."
+                    required
+                    className="w-full text-xs font-bold uppercase bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Sửa trực tiếp nếu nhập sai mã mực</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Hãng sản xuất *
+                  </label>
+                  <input
+                    type="text"
+                    value={editBrand}
+                    onChange={(e) => setEditBrand(e.target.value)}
+                    placeholder="VD: HP, Canon, Brother..."
+                    required
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Tên loại mực *
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="VD: Hộp mực Canon Cartridge 303..."
+                  required
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Màu mực
+                  </label>
+                  <select
+                    value={editColor}
+                    onChange={(e) => setEditColor(e.target.value)}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Black">Đen (Black)</option>
+                    <option value="Cyan">Xanh (Cyan)</option>
+                    <option value="Magenta">Đỏ (Magenta)</option>
+                    <option value="Yellow">Vàng (Yellow)</option>
+                    <option value="Multi">Đa màu / Bộ màu</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Công nghệ / Dạng mực
+                  </label>
+                  <input
+                    type="text"
+                    value={editTonerType}
+                    onChange={(e) => setEditTonerType(e.target.value)}
+                    placeholder="VD: Hộp mực Laser đen trắng"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Dòng máy in tương thích
+                </label>
+                <input
+                  type="text"
+                  value={editModelsInput}
+                  onChange={(e) => setEditModelsInput(e.target.value)}
+                  placeholder="VD: Canon LBP 2900, HP LaserJet 1020 (ngăn cách bằng dấu phẩy)"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Ghi chú
+                </label>
+                <textarea
+                  rows={2}
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  placeholder="Ghi chú về mã phôi, dung lượng trang in ước tính..."
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditTarget(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm disabled:opacity-50"
+                >
+                  {savingEdit ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Toggle Status */}
       <ConfirmDialog
@@ -257,6 +499,34 @@ export default function TonersPage() {
         variant="warning"
         onConfirm={handleToggleStatus}
         onCancel={() => setToggleTarget(null)}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Xóa Loại Mực Máy In?"
+        message={
+          <div>
+            <p className="font-semibold text-slate-900">
+              {deleteTarget?.code} - {deleteTarget?.name} ({deleteTarget?.brand})
+            </p>
+            {deleteTarget && (tonerStats[deleteTarget.id]?.printersCount || 0) > 0 ? (
+              <p className="text-xs text-amber-600 font-medium mt-2 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                ⚠️ Cảnh báo: Loại mực này đang được gán cho{" "}
+                <strong>{tonerStats[deleteTarget.id]?.printersCount}</strong> máy in trong trường.
+                Nếu xóa, các máy in này sẽ trở về trạng thái chưa gán loại mực.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 mt-1">
+                Bạn có chắc chắn muốn xóa vĩnh viễn loại mực này khỏi danh mục hệ thống? Thao tác này phù hợp khi nhập sai thông tin.
+              </p>
+            )}
+          </div>
+        }
+        confirmText="Xác nhận xóa"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );
