@@ -18,12 +18,15 @@ import {
   TrendingUp,
   Clock,
   Droplet,
+  Package,
+  Boxes,
 } from "lucide-react";
 import { printerService } from "../../../services/printerService";
 import { departmentService } from "../../../services/departmentService";
 import { transactionService } from "../../../services/transactionService";
 import { repairService } from "../../../services/repairService";
 import { tonerService } from "../../../services/tonerService";
+import { tonerInventoryService } from "../../../services/tonerInventoryService";
 import { settingsService } from "../../../services/settingsService";
 import {
   Printer as IPrinter,
@@ -31,6 +34,7 @@ import {
   TonerTransaction,
   Repair,
   TonerType,
+  TonerInventoryItem,
   SystemSettings,
 } from "../../../types";
 import { formatDate, formatDateTime, PRINTER_STATUS_MAP } from "../../../lib/utils";
@@ -56,6 +60,7 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<TonerTransaction[]>([]);
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [toners, setToners] = useState<TonerType[]>([]);
+  const [inventory, setInventory] = useState<TonerInventoryItem[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,13 +74,14 @@ export default function DashboardPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        const [p, d, t, r, ton, s] = await Promise.all([
+        const [p, d, t, r, ton, s, inv] = await Promise.all([
           printerService.getAll(),
           departmentService.getAll(),
           transactionService.getAll(),
           repairService.getAll(),
           tonerService.getAll(),
           settingsService.getSettings(),
+          tonerInventoryService.getAll(),
         ]);
         setPrinters(p);
         setDepartments(d);
@@ -83,6 +89,7 @@ export default function DashboardPage() {
         setRepairs(r);
         setToners(ton);
         setSettings(s);
+        setInventory(inv);
       } finally {
         setLoading(false);
       }
@@ -412,6 +419,79 @@ export default function DashboardPage() {
       }));
   }, [tonerPrinterDistribution]);
 
+  // Thống kê Kho Mực: Tổng số mực & Tổng số từng loại mực
+  const totalInventoryStock = useMemo(() => {
+    return inventory.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  }, [inventory]);
+
+  const tonerStockSummary = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        code: string;
+        name: string;
+        brand: string;
+        color: string;
+        totalQuantity: number;
+        locations: string[];
+        compatibleModels: string[];
+        itemsCount: number;
+        status: "in_stock" | "low_stock" | "out_of_stock";
+      }
+    > = {};
+
+    inventory.forEach((item) => {
+      const code = item.code || "Khác";
+      if (!map[code]) {
+        map[code] = {
+          code,
+          name: item.name || code,
+          brand: item.brand || "Khác",
+          color: item.color || "black",
+          totalQuantity: 0,
+          locations: [],
+          compatibleModels: item.compatibleModels ? [...item.compatibleModels] : [],
+          itemsCount: 0,
+          status: "in_stock",
+        };
+      }
+      map[code].totalQuantity += Number(item.quantity) || 0;
+      map[code].itemsCount += 1;
+
+      if (item.storageLocation && !map[code].locations.includes(item.storageLocation)) {
+        map[code].locations.push(item.storageLocation);
+      }
+      if (item.compatibleModels) {
+        item.compatibleModels.forEach((m) => {
+          if (!map[code].compatibleModels.includes(m)) {
+            map[code].compatibleModels.push(m);
+          }
+        });
+      }
+    });
+
+    return Object.values(map)
+      .map((item) => ({
+        ...item,
+        status:
+          item.totalQuantity === 0
+            ? ("out_of_stock" as const)
+            : item.totalQuantity <= 5
+            ? ("low_stock" as const)
+            : ("in_stock" as const),
+      }))
+      .sort((a, b) => b.totalQuantity - a.totalQuantity);
+  }, [inventory]);
+
+  const chartTonerStock = useMemo(() => {
+    return tonerStockSummary.map((item) => ({
+      code: item.code,
+      name: item.name,
+      quantity: item.totalQuantity,
+      brand: item.brand,
+    }));
+  }, [tonerStockSummary]);
+
   // Hoạt động gần đây (Recent 10 activities)
   const recentActivities = useMemo(() => {
     const items: Array<{
@@ -463,6 +543,13 @@ export default function DashboardPage() {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
+            href="/toner-inventory"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 shadow-sm transition-all"
+          >
+            <Package className="w-4 h-4 text-indigo-600" />
+            Kho mực in ({totalInventoryStock})
+          </Link>
+          <Link
             href="/toner-transactions/new"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition-all"
           >
@@ -479,43 +566,52 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Mobile App Quick Action Dock (4 1-touch buttons for smartphone technicians) */}
-      <div className="grid grid-cols-4 gap-2.5 sm:hidden">
+      {/* Mobile App Quick Action Dock (5 1-touch buttons for smartphone technicians) */}
+      <div className="grid grid-cols-5 gap-2 sm:hidden">
         <Link
           href="/toner-transactions/new"
-          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 active:scale-90 transition-all text-center"
+          className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 active:scale-90 transition-all text-center"
         >
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
-            <RefreshCw className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center mb-1">
+            <RefreshCw className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[11px] font-bold leading-tight">Nạp mực</span>
+          <span className="text-[10px] font-bold leading-tight">Nạp mực</span>
+        </Link>
+        <Link
+          href="/toner-inventory"
+          className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-500/20 active:scale-90 transition-all text-center"
+        >
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center mb-1">
+            <Package className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-[10px] font-bold leading-tight">Kho mực</span>
         </Link>
         <Link
           href="/repairs/new"
-          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/20 active:scale-90 transition-all text-center"
+          className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/20 active:scale-90 transition-all text-center"
         >
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
-            <Wrench className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center mb-1">
+            <Wrench className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[11px] font-bold leading-tight">Báo hỏng</span>
+          <span className="text-[10px] font-bold leading-tight">Báo hỏng</span>
         </Link>
         <Link
           href="/printers/new"
-          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-md shadow-purple-500/20 active:scale-90 transition-all text-center"
+          className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-md shadow-purple-500/20 active:scale-90 transition-all text-center"
         >
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
-            <Printer className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center mb-1">
+            <Printer className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[11px] font-bold leading-tight">Thêm máy</span>
+          <span className="text-[10px] font-bold leading-tight">Thêm máy</span>
         </Link>
         <Link
           href="/departments"
-          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 active:scale-90 transition-all text-center"
+          className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 active:scale-90 transition-all text-center"
         >
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mb-1.5">
-            <Building2 className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center mb-1">
+            <Building2 className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[11px] font-bold leading-tight">Khoa/Phòng</span>
+          <span className="text-[10px] font-bold leading-tight">Khoa/Phòng</span>
         </Link>
       </div>
 
@@ -618,8 +714,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 10 KPI CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      {/* 12 KPI CARDS */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* Card 1: Tổng máy in */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
@@ -741,6 +837,40 @@ export default function DashboardPage() {
           <p className="text-2xl font-bold text-rose-600 mt-2">{attentionPrintersCount}</p>
           <span className="text-[11px] text-rose-700 font-medium">Hỏng / Sửa lâu / Nạp nhiều</span>
         </div>
+
+        {/* Card 11: Tổng mực trong kho */}
+        <Link
+          href="/toner-inventory"
+          className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all block group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-indigo-900 group-hover:text-indigo-600 transition-colors">
+              Tổng mực trong kho
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Package className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-indigo-600 mt-2">{totalInventoryStock}</p>
+          <span className="text-[11px] text-indigo-700 font-medium">hộp cartridge lưu kho</span>
+        </Link>
+
+        {/* Card 12: Loại mực lưu kho */}
+        <Link
+          href="/toner-inventory"
+          className="bg-white p-4 rounded-2xl border border-violet-100 shadow-sm hover:shadow-md hover:border-violet-300 transition-all block group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-violet-900 group-hover:text-violet-600 transition-colors">
+              Loại mực lưu kho
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center">
+              <Boxes className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-violet-600 mt-2">{tonerStockSummary.length}</p>
+          <span className="text-[11px] text-violet-700 font-medium">mã mực sẵn sàng cấp</span>
+        </Link>
       </div>
 
       {/* Smart Alerts Section */}
@@ -1120,6 +1250,165 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* QUẢN LÝ KHO MỰC: TỔNG SỐ LƯỢNG & TỒN KHO TỪNG LOẠI MỰC */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                <Package className="w-4 h-4" />
+              </div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                QUẢN LÝ KHO MỰC: TỔNG SỐ LƯỢNG & TỒN KHO TỪNG LOẠI MỰC
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Thống kê tổng số lượng mực nhập về kho riêng và số lượng dự trữ thực tế của từng loại cartridge
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg">
+              Tổng trong kho: {totalInventoryStock} hộp
+            </span>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg">
+              {tonerStockSummary.length} loại mực
+            </span>
+            <Link
+              href="/toner-inventory"
+              className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1"
+            >
+              Vào Kho Mực <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Biểu đồ so sánh số lượng tồn kho theo từng loại mực */}
+        {chartTonerStock.length > 0 ? (
+          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Biểu đồ số lượng tồn kho theo từng mã mực (Đơn vị: Hộp)
+              </h3>
+              <span className="text-[11px] font-semibold text-indigo-600">
+                Tổng cộng {totalInventoryStock} hộp mực
+              </span>
+            </div>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartTonerStock} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="code" tick={{ fontSize: 11, fill: "#475569" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#475569" }} />
+                  <Tooltip
+                    formatter={(val: any, _name: any, item: any) => [
+                      `${val} hộp mực`,
+                      item.payload.name || item.payload.code,
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      border: "none",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Bar dataKey="quantity" name="Số lượng tồn kho" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Lưới các thẻ tồn kho chi tiết từng loại mực */}
+        {tonerStockSummary.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {tonerStockSummary.map((item) => (
+              <div
+                key={item.code}
+                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {item.code}
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-sm mt-1.5 line-clamp-1">
+                        {item.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-medium">{item.brand}</p>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        item.status === "in_stock"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : item.status === "low_stock"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-rose-50 text-rose-700 border-rose-200"
+                      }`}
+                    >
+                      {item.status === "in_stock"
+                        ? "Dồi dào"
+                        : item.status === "low_stock"
+                        ? "Sắp hết"
+                        : "Hết hàng"}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 p-3 bg-slate-50 rounded-xl flex items-baseline justify-between">
+                    <span className="text-xs text-slate-500 font-medium">Số lượng tồn kho:</span>
+                    <span className="text-2xl font-black text-indigo-600">
+                      {item.totalQuantity} <span className="text-xs font-bold text-slate-500">hộp</span>
+                    </span>
+                  </div>
+
+                  {item.locations.length > 0 && (
+                    <div className="mt-2.5 text-[11px] text-slate-500">
+                      <span className="font-medium text-slate-700">Vị trí kho: </span>
+                      <span>{item.locations.join(", ")}</span>
+                    </div>
+                  )}
+
+                  {item.compatibleModels.length > 0 && (
+                    <div className="mt-1 text-[11px] text-slate-500">
+                      <span className="font-medium text-slate-700">Tương thích: </span>
+                      <span className="line-clamp-1">{item.compatibleModels.join(", ")}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">
+                    {item.itemsCount} phiếu/lô nhập
+                  </span>
+                  <Link
+                    href={`/toner-inventory`}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+                  >
+                    Xem chi tiết &rarr;
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-600">Kho mực hiện chưa có dữ liệu</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Hãy thêm phiếu nhập mực mới để quản lý tồn kho cartridge riêng
+            </p>
+            <Link
+              href="/toner-inventory/new"
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors"
+            >
+              + Nhập mực vào kho
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* RECENT ACTIVITIES TABLE (10 GẦN NHẤT) */}

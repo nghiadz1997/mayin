@@ -56,6 +56,30 @@ export interface TonerType {
   updatedAt?: any;
 }
 
+// Phân hệ Kho Mực In (Quản lý nhập mực mới về & tồn kho)
+// TUYỆT ĐỐI KHÔNG CÓ BẤT KỲ TRƯỜNG DỮ LIỆU NÀO LIÊN QUAN ĐẾN GIÁ TIỀN, ĐƠN GIÁ, CHI PHÍ!
+export type TonerInventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
+
+export interface TonerInventoryItem {
+  id: string;
+  tonerTypeId?: string; // Liên kết với danh mục loại mực nếu có
+  code: string; // Mã hộp mực (VD: TN-2385, 12A, 107A...)
+  name: string; // Tên đầy đủ hộp mực
+  brand: string; // Hãng sản xuất (Brother, Canon, HP, Epson...)
+  tonerType: string; // Mô tả loại mực (Hộp mực laser đen trắng, Mực nạp chai...)
+  color: string; // Màu mực (Black, Cyan, Magenta, Yellow...)
+  compatibleModels: string[]; // Các Model máy in tương thích
+  note?: string; // Ghi chú công suất / dung lượng
+  quantity: number; // Số lượng tồn kho / nhập về
+  storageLocation: string; // Vị trí lưu kho (Kho Hành chính, Tủ A kệ 1...)
+  importDate: string; // Ngày nhập kho
+  supplier?: string; // Nhà cung cấp / Nguồn nhập
+  importedBy?: string; // Người nhập kho / Phụ trách
+  status: TonerInventoryStatus; // Trạng thái tồn kho
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export type TonerTransactionType = 'refill' | 'replace' | 'drum' | 'other';
 
 export interface TonerTransaction {
@@ -171,7 +195,12 @@ export type AuditAction =
   | 'UPDATE_DEPARTMENT'
   | 'CREATE_TONER'
   | 'UPDATE_TONER'
-  | 'CREATE_FAULT_REPORT';
+  | 'CREATE_FAULT_REPORT'
+  | 'IMPORT_TONER_INVENTORY'
+  | 'UPDATE_TONER_INVENTORY'
+  | 'DELETE_TONER_INVENTORY'
+  | 'IMPORT_TONER_ADD'
+  | 'EXPORT_TONER_USE';
 
 export interface AuditLog {
   id: string;

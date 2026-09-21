@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Package,
 } from "lucide-react";
 
 interface NavItem {
@@ -67,6 +68,11 @@ export const Sidebar: React.FC<{ mobileOpen: boolean; setMobileOpen: (open: bool
           label: "Mực máy in",
           href: "/toners",
           icon: <Droplet className="w-5 h-5" />,
+        },
+        {
+          label: "Kho mực in",
+          href: "/toner-inventory",
+          icon: <Package className="w-5 h-5 text-blue-400" />,
         },
         {
           label: "Nạp / Thay mực",

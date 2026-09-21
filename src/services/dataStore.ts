@@ -22,6 +22,7 @@ import {
   DEFAULT_AUDIT_LOGS,
   DEFAULT_SETTINGS,
   DEMO_USERS,
+  DEFAULT_TONER_INVENTORY,
 } from "../lib/seedData";
 
 // Tên các Collections trong Firestore & Local Cache Keys
@@ -36,6 +37,7 @@ export const COLLECTIONS = {
   AUDIT_LOGS: "auditLogs",
   SETTINGS: "settings",
   USERS: "users",
+  TONER_INVENTORY: "tonerInventory",
 } as const;
 
 type CollectionKey = keyof typeof COLLECTIONS;
@@ -62,6 +64,8 @@ function getInitialData(col: string) {
       return [DEFAULT_SETTINGS];
     case COLLECTIONS.USERS:
       return DEMO_USERS;
+    case COLLECTIONS.TONER_INVENTORY:
+      return DEFAULT_TONER_INVENTORY;
     default:
       return [];
   }

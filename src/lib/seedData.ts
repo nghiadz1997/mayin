@@ -8,7 +8,8 @@ import {
   FaultReport,
   AuditLog,
   SystemSettings,
-  AppUser
+  AppUser,
+  TonerInventoryItem,
 } from "../types";
 
 // 14 ĐƠN VỊ MẶC ĐỊNH THEO QUY ĐỊNH (6 KHOA & 8 PHÒNG)
@@ -242,6 +243,82 @@ export const DEFAULT_TRANSFERS: PrinterTransfer[] = [];
 export const DEFAULT_FAULT_REPORTS: FaultReport[] = [];
 export const DEFAULT_AUDIT_LOGS: AuditLog[] = [];
 export const DEMO_USERS: AppUser[] = [];
+
+// DỮ LIỆU TỒN KHO MỰC IN BAN ĐẦU (TUYỆT ĐỐI KHÔNG CÓ GIÁ TIỀN)
+export const DEFAULT_TONER_INVENTORY: TonerInventoryItem[] = [
+  {
+    id: "inv-12a",
+    tonerTypeId: "toner-12a",
+    code: "12A",
+    name: "Hộp mực HP 12A (Q2612A)",
+    brand: "HP",
+    tonerType: "Hộp mực Laser đen trắng",
+    color: "Black",
+    compatibleModels: ["Canon LBP 2900", "Canon LBP 3000", "LaserJet 1020"],
+    note: "Định mức ~2.000 trang độ phủ 5%",
+    quantity: 15,
+    storageLocation: "Kho Hành chính - Tủ 01 Kệ A",
+    importDate: "2026-03-01",
+    supplier: "Công ty Thiết bị Văn phòng Nam Sài Gòn",
+    importedBy: "Quản trị viên",
+    status: "in_stock",
+    createdAt: "2026-03-01T08:00:00.000Z",
+  },
+  {
+    id: "inv-tn2385",
+    tonerTypeId: "toner-tn2385",
+    code: "TN-2385",
+    name: "Hộp mực Brother TN-2385",
+    brand: "Brother",
+    tonerType: "Hộp mực Laser đen trắng",
+    color: "Black",
+    compatibleModels: ["HL-L2321D", "HL-L2366DW", "DCP-L2520D", "MFC-L2701D"],
+    note: "Mực tiêu chuẩn ~2.600 trang",
+    quantity: 10,
+    storageLocation: "Kho Hành chính - Tủ 01 Kệ B",
+    importDate: "2026-03-05",
+    supplier: "Công ty Thiết bị Văn phòng Nam Sài Gòn",
+    importedBy: "Quản trị viên",
+    status: "in_stock",
+    createdAt: "2026-03-05T08:00:00.000Z",
+  },
+  {
+    id: "inv-05a",
+    tonerTypeId: "toner-05a",
+    code: "05A",
+    name: "Hộp mực HP 05A (CE505A)",
+    brand: "HP",
+    tonerType: "Hộp mực Laser đen trắng công suất cao",
+    color: "Black",
+    compatibleModels: ["LaserJet P2035", "LaserJet P2055d", "P2055dn"],
+    note: "Công suất ~2.300 trang",
+    quantity: 6,
+    storageLocation: "Kho Hành chính - Tủ 02 Kệ A",
+    importDate: "2026-03-10",
+    supplier: "Công ty Cổ phần Tin học & Thiết bị Giáo dục",
+    importedBy: "Quản trị viên",
+    status: "in_stock",
+    createdAt: "2026-03-10T08:00:00.000Z",
+  },
+  {
+    id: "inv-107a",
+    tonerTypeId: "toner-107a",
+    code: "107A",
+    name: "Hộp mực HP 107A (W1107A)",
+    brand: "HP",
+    tonerType: "Hộp mực Laser đen trắng",
+    color: "Black",
+    compatibleModels: ["Laser 107a", "Laser 107w", "MFP 135a", "MFP 137fnw"],
+    note: "Dung lượng ~1.000 trang",
+    quantity: 2,
+    storageLocation: "Kho Hành chính - Tủ 02 Kệ B",
+    importDate: "2026-02-20",
+    supplier: "Công ty Cổ phần Tin học & Thiết bị Giáo dục",
+    importedBy: "Quản trị viên",
+    status: "low_stock",
+    createdAt: "2026-02-20T08:00:00.000Z",
+  },
+];
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   schoolName: "Trường Đại học Công nghệ & Đào tạo",

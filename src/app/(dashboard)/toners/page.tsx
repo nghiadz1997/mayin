@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Droplet, Search, Plus, Printer, CheckCircle2, X, Edit, EyeOff } from "lucide-react";
+import { Droplet, Search, Plus, Printer, CheckCircle2, X, Edit, EyeOff, Package } from "lucide-react";
 import { tonerService } from "../../../services/tonerService";
 import { printerService } from "../../../services/printerService";
 import { transactionService } from "../../../services/transactionService";
@@ -104,15 +104,24 @@ export default function TonersPage() {
           </p>
         </div>
 
-        {canManagePrinters && (
+        <div className="flex items-center gap-2.5">
           <Link
-            href="/toners/new"
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all"
+            href="/toner-inventory"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4" />
-            + Thêm loại mực mới
+            <Package className="w-4 h-4 text-blue-600" />
+            Xem Kho Mực In
           </Link>
-        )}
+          {canManagePrinters && (
+            <Link
+              href="/toners/new"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              + Thêm loại mực mới
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter Bar */}
